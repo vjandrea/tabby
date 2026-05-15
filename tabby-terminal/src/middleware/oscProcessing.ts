@@ -63,6 +63,8 @@ export class OSCProcessor extends SessionMiddleware {
             const [oscCodeString, ...oscParams] = oscString.split(';')
             const oscCode = parseInt(oscCodeString)
 
+            let handled = false
+
             if (oscCode === 1337) {
                 const paramString = oscParams.join(';')
                 if (paramString.startsWith('CurrentDir=')) {
@@ -71,6 +73,7 @@ export class OSCProcessor extends SessionMiddleware {
                         reportedCWD = os.homedir() + reportedCWD.substring(1)
                     }
                     this.cwdReported.next(reportedCWD)
+                    handled = true
                 } else {
                     console.debug('Unsupported OSC 1337 parameter:', paramString)
                 }
@@ -78,7 +81,12 @@ export class OSCProcessor extends SessionMiddleware {
                 if (oscParams[0] === 'c' || oscParams[0] === '') {
                     const content = Buffer.from(oscParams[1], 'base64')
                     this.copyRequested.next(content.toString())
+                    handled = true
                 }
+            }
+
+            if (!handled) {
+                processedData.push(data.subarray(prefixIndex, foundSuffix[1] + foundSuffix[0].length))
             }
 
             // Move past this OSC sequence
